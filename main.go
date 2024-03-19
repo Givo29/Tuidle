@@ -4,9 +4,11 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -70,7 +72,7 @@ func checkPlayerState(guesses []Guess, maxTries int) PlayerState {
 		return Lose
 	}
 
-  return Playing
+	return Playing
 }
 
 func (m Model) Init() tea.Cmd { return nil }
@@ -135,7 +137,13 @@ func (m Model) View() string {
 }
 
 func main() {
-	words := []string{"about", "penne"}
+	words := []string{"about", "penne", "apple", "table", "hello", "world", "globe", "water", "earth", "space", "music"}
+
+	// Seed random generator with date and generate random word index
+	year, month, day := time.Now().Date()
+	date := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	r := rand.New(rand.NewSource(date.UnixNano()))
+	num := r.Intn(len(words))
 
 	textInput := textinput.New()
 	textInput.Focus()
@@ -145,7 +153,7 @@ func main() {
 
 	model := Model{
 		// Choose first word for now
-		word:       words[0],
+		word:       words[num],
 		state:      Playing,
 		maxTries:   6,
 		guessInput: textInput,
