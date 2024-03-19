@@ -19,9 +19,17 @@ type Guess struct {
 	incorrectLettersIndex []int
 }
 
+type PlayerState string
+
+const (
+	Playing PlayerState = "playing"
+	Win     PlayerState = "win"
+	Lose    PlayerState = "lose"
+)
+
 type Model struct {
 	word     string
-	msg      string
+	state    PlayerState
 	maxTries int
 	guesses  []Guess
 
@@ -51,6 +59,20 @@ func checkGuess(word, guess string) Guess {
 	return g
 }
 
+func checkPlayerState(guesses []Guess, maxTries int) PlayerState {
+	// Check if the last guess was correct
+	if len(guesses) > 0 && guesses[len(guesses)-1].correct {
+		return Win
+	}
+
+	// Check if the player has run out of tries
+	if len(guesses) == maxTries {
+		return Lose
+	}
+
+  return Playing
+}
+
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -66,6 +88,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.guesses = append(m.guesses, checkGuess(m.word, m.guessInput.Value()))
 				m.guessInput.SetValue("")
 			}
+			m.state = checkPlayerState(m.guesses, m.maxTries)
 			return m, nil
 		}
 	}
@@ -75,24 +98,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	s := "Make a guess!\n"
-	s += fmt.Sprintf("Legend: (correct) [wrong position]\n\n")
+	var s string
 
-	for _, g := range m.guesses {
-		for i, l := range g.guess {
-			if slices.Contains(g.correctLettersIndex, i) {
-				s += fmt.Sprintf("(%s)", string(l))
-			} else if slices.Contains(g.incorrectLettersIndex, i) {
-				s += fmt.Sprintf("[%s]", string(l))
-			} else {
-				s += fmt.Sprintf("%s", string(l))
+	switch m.state {
+	case Playing:
+		s += "Make a guess!\n"
+		s += fmt.Sprintf("Legend: (correct) [wrong position]\n\n")
+
+		for _, g := range m.guesses {
+			for i, l := range g.guess {
+				if slices.Contains(g.correctLettersIndex, i) {
+					s += fmt.Sprintf("(%s)", string(l))
+				} else if slices.Contains(g.incorrectLettersIndex, i) {
+					s += fmt.Sprintf("[%s]", string(l))
+				} else {
+					s += fmt.Sprintf("%s", string(l))
+				}
 			}
+			s += "\n"
 		}
-		s += "\n"
-	}
-	s += fmt.Sprintf("\n%s", m.guessInput.View())
-	s += "\n\nPress Ctrl+C to quit\n"
+		s += fmt.Sprintf("\n%s", m.guessInput.View())
+		s += "\n\nPress Ctrl+C to quit\n"
 
+	case Win:
+		s += "You win!\n"
+		s += fmt.Sprintf("The word was: %s\n", m.word)
+		s += fmt.Sprintf("You made %d guesses\n", len(m.guesses))
+		s += fmt.Sprintf("\nPress Ctrl+C to quit\n")
+
+	case Lose:
+		s += "You lose!\n"
+		s += fmt.Sprintf("The word was: %s\n", m.word)
+		s += fmt.Sprintf("\nPress Ctrl+C to quit\n")
+	}
 	return s
 }
 
@@ -108,6 +146,7 @@ func main() {
 	model := Model{
 		// Choose first word for now
 		word:       words[0],
+		state:      Playing,
 		maxTries:   6,
 		guessInput: textInput,
 	}
