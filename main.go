@@ -4,6 +4,7 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -41,16 +42,25 @@ const (
 )
 
 type Model struct {
-	width    int
-	height   int
-	words    []string
-	word     string
-	state    PlayerState
-	maxTries int
-	guesses  []Guess
+	width      int
+	height     int
+	words      []string
+	word       string
+	dateString string
+	state      PlayerState
+	maxTries   int
+	guesses    []Guess
 
 	guessInput textinput.Model
 	inputStyle lipgloss.Style
+}
+
+type result struct {
+	Date    string `json:"date"`
+	Word    string `json:"word"`
+	Guesses int    `json:"guesses"`
+	Win     bool   `json:"win"`
+	Streak  int    `json:"streak"`
 }
 
 func checkGuess(word, guess string) Guess {
@@ -90,6 +100,67 @@ func checkPlayerState(guesses []Guess, maxTries int) PlayerState {
 	return Playing
 }
 
+func saveGameToFile(m Model) {
+	var results []result
+
+	file, err := os.ReadFile("~/.termdle.json")
+	json.Unmarshal([]byte(file), &results)
+
+	result := result{
+		Date:    m.dateString,
+		Word:    m.word,
+		Guesses: len(m.guesses),
+		Win:     m.state == Win,
+	}
+
+	if len(results) > 0 {
+		todayDate, err := time.Parse("2006-01-02", m.dateString)
+		if err != nil {
+			fmt.Println("Error parsing date")
+			return
+		}
+		lastDate, _ := time.Parse("2006-01-02", results[len(results)-1].Date)
+		if err != nil {
+			fmt.Println("Error parsing date")
+			return
+		}
+		// check if last date is yesterday
+		if todayDate.Sub(lastDate).Hours() == 24 {
+			result.Streak = results[len(results)-1].Streak + 1
+		} else {
+			result.Streak = 1
+		}
+	} else {
+		result.Streak = 1
+	}
+
+	results = append(results, result)
+	marshalledResults, err := json.Marshal(results)
+	if err != nil {
+		return
+	}
+	err = os.WriteFile(fmt.Sprintf("%s/.termdle.json", os.Getenv("HOME")), marshalledResults, 0666)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func checkTodayCompleted() bool {
+	file, err := os.ReadFile(fmt.Sprintf("%s/.termdle.json", os.Getenv("HOME")))
+	if err != nil {
+		return false
+	}
+
+	var results []result
+	json.Unmarshal([]byte(file), &results)
+
+	if results[len(results)-1].Date == time.Now().Format("2006-01-02") {
+		return true
+	}
+
+	return false
+}
+
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -121,6 +192,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.guessInput.SetValue("")
 			}
 			m.state = checkPlayerState(m.guesses, m.maxTries)
+			// Should only save once here
+			if m.state != Playing {
+				saveGameToFile(m)
+			}
 			return m, nil
 		}
 	}
@@ -172,6 +247,10 @@ func (m Model) View() string {
 }
 
 func main() {
+	if checkTodayCompleted() {
+		fmt.Println("You've already played today, come back tomorrow for the next word!")
+		return
+	}
 	words := strings.Split(wordsString, "\n")
 
 	// Seed random generator with date and generate random word index
@@ -190,6 +269,7 @@ func main() {
 		// Choose first word for now
 		words:      words,
 		word:       words[num],
+		dateString: date.Format("2006-01-02"),
 		state:      Playing,
 		maxTries:   6,
 		guessInput: textInput,

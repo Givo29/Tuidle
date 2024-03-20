@@ -8,7 +8,9 @@ Play Wordle in your terminal! A TUI version of the popular game Wordle built usi
 
 ## Todos
 
-- [ ] Use JSON to record games and scores
+- [x] Use JSON to record games and scores
 - [ ] Add an option to share your game
 - [ ] Add an option to export your JSON file
 - [ ] Display streak after game end
+- [ ] Add stats page?
+- [ ] If game is already complete today, show stats instead of starting a new game
