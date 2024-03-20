@@ -2,6 +2,8 @@
 
 Play Wordle in your terminal! A TUI version of the popular game Wordle built using Go and the [charmcli](https://github.com/charmbracelet) tools, namely [bubbletea](https://github.com/charmbracelet/bubbletea).
 
+Warning: The code is probably not great, this is my first Go project :)
+
 ## Demo
 
 ![Demo](./examples/demo.gif)
