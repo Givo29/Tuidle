@@ -260,11 +260,7 @@ func (m Model) View() string {
 }
 
 func main() {
-	previousResult, err := getPreviousResult()
-	if err != nil {
-		fmt.Println("Error reading previous result")
-		os.Exit(1)
-	}
+	previousResult, _ := getPreviousResult()
 	if previousResult.Date == time.Now().Format("2006-01-02") {
 		fmt.Println("You've already played today, come back tomorrow for the next word!")
 		fmt.Println("Your current streak is", previousResult.Streak)
