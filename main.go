@@ -108,7 +108,7 @@ func checkPlayerState(guesses []Guess, maxTries int) PlayerState {
 func saveGameToFile(m Model) {
 	var results []result
 
-	file, err := os.ReadFile("~/.termdle.json")
+	file, err := os.ReadFile("~/.tuidle.json")
 	json.Unmarshal([]byte(file), &results)
 
 	result := result{
@@ -130,14 +130,14 @@ func saveGameToFile(m Model) {
 	if err != nil {
 		return
 	}
-	err = os.WriteFile(fmt.Sprintf("%s/.termdle.json", os.Getenv("HOME")), marshalledResults, 0666)
+	err = os.WriteFile(fmt.Sprintf("%s/.tuidle.json", os.Getenv("HOME")), marshalledResults, 0666)
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
 func getPreviousResult() (result, error) {
-	file, err := os.ReadFile(fmt.Sprintf("%s/.termdle.json", os.Getenv("HOME")))
+	file, err := os.ReadFile(fmt.Sprintf("%s/.tuidle.json", os.Getenv("HOME")))
 	if err != nil {
 		return result{}, err
 	}

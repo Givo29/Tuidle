@@ -1,4 +1,4 @@
-module termdle
+module tuidle
 
 go 1.22.1
 
