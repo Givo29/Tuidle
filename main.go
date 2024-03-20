@@ -36,6 +36,8 @@ const (
 )
 
 type Model struct {
+	width    int
+	height   int
 	word     string
 	state    PlayerState
 	maxTries int
@@ -87,14 +89,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
-      if m.state != Playing {
-        return m, nil
-      }
+			if m.state != Playing {
+				return m, nil
+			}
 
 			if len(m.guesses) < m.maxTries && len(m.guessInput.Value()) == 5 {
 				m.guesses = append(m.guesses, checkGuess(m.word, m.guessInput.Value()))
@@ -146,7 +151,9 @@ func (m Model) View() string {
 		s += inputStyle.Render(m.guessInput.View())
 	}
 	s += "\nPress Ctrl+C to quit\n"
-	return s
+
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, lipgloss.JoinVertical(lipgloss.Center, s))
+
 }
 
 func main() {
@@ -172,7 +179,7 @@ func main() {
 		guessInput: textInput,
 	}
 
-	p := tea.NewProgram(model)
+	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
