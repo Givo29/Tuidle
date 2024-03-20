@@ -18,7 +18,8 @@ import (
 var incorrectLetterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(0, 1)
 var incorrectPositionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#ff8100")).Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#ff8100")).Padding(0, 1)
 var correctStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#04B575")).Padding(0, 1)
-var inputStyle = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Width(25)
+var validInputStyle = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Width(25)
+var invalidInputStyle = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#ff0000")).Width(25)
 
 type Guess struct {
 	correct               bool
@@ -38,12 +39,14 @@ const (
 type Model struct {
 	width    int
 	height   int
+	words    []string
 	word     string
 	state    PlayerState
 	maxTries int
 	guesses  []Guess
 
 	guessInput textinput.Model
+	inputStyle lipgloss.Style
 }
 
 func checkGuess(word, guess string) Guess {
@@ -101,6 +104,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			if !slices.Contains(m.words, m.guessInput.Value()) {
+				m.guessInput.SetValue("")
+				m.inputStyle = invalidInputStyle
+				return m, nil
+			}
+
+			m.inputStyle = validInputStyle
+
 			if len(m.guesses) < m.maxTries && len(m.guessInput.Value()) == 5 {
 				m.guesses = append(m.guesses, checkGuess(m.word, m.guessInput.Value()))
 				m.guessInput.SetValue("")
@@ -148,7 +159,7 @@ func (m Model) View() string {
 	}
 
 	if m.state == Playing {
-		s += inputStyle.Render(m.guessInput.View())
+		s += m.inputStyle.Render(m.guessInput.View())
 	}
 	s += "\nPress Ctrl+C to quit\n"
 
@@ -173,10 +184,12 @@ func main() {
 
 	model := Model{
 		// Choose first word for now
+		words:      words,
 		word:       words[num],
 		state:      Playing,
 		maxTries:   6,
 		guessInput: textInput,
+		inputStyle: validInputStyle,
 	}
 
 	p := tea.NewProgram(model, tea.WithAltScreen())
