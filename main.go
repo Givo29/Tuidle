@@ -3,6 +3,7 @@ package main
 // Wordle game written in Golang with Bubbletea
 
 import (
+	_ "embed"
 	"fmt"
 	"math/rand"
 	"os"
@@ -14,6 +15,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+//go:embed words.txt
+var wordsString string
 
 var incorrectLetterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(0, 1)
 var incorrectPositionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#ff8100")).Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#ff8100")).Padding(0, 1)
@@ -168,7 +172,7 @@ func (m Model) View() string {
 }
 
 func main() {
-	words := []string{"about", "penne", "apple", "table", "hello", "world", "globe", "water", "earth", "space", "music"}
+	words := strings.Split(wordsString, "\n")
 
 	// Seed random generator with date and generate random word index
 	year, month, day := time.Now().Date()
