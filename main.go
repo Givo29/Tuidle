@@ -41,15 +41,19 @@ const (
 	Lose    PlayerState = "lose"
 )
 
-type Model struct {
-	width      int
-	height     int
+type game struct {
 	words      []string
 	word       string
 	dateString string
 	state      PlayerState
 	maxTries   int
 	guesses    []Guess
+}
+
+type Model struct {
+	width  int
+	height int
+	game   game
 
 	guessInput textinput.Model
 	inputStyle lipgloss.Style
@@ -107,14 +111,14 @@ func saveGameToFile(m Model) {
 	json.Unmarshal([]byte(file), &results)
 
 	result := result{
-		Date:    m.dateString,
-		Word:    m.word,
-		Guesses: len(m.guesses),
-		Win:     m.state == Win,
+		Date:    m.game.dateString,
+		Word:    m.game.word,
+		Guesses: len(m.game.guesses),
+		Win:     m.game.state == Win,
 	}
 
 	if len(results) > 0 {
-		todayDate, err := time.Parse("2006-01-02", m.dateString)
+		todayDate, err := time.Parse("2006-01-02", m.game.dateString)
 		if err != nil {
 			fmt.Println("Error parsing date")
 			return
@@ -175,11 +179,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
-			if m.state != Playing || len(m.guessInput.Value()) != 5 {
+			if m.game.state != Playing || len(m.guessInput.Value()) != 5 {
 				return m, nil
 			}
 
-			if !slices.Contains(m.words, m.guessInput.Value()) {
+			if !slices.Contains(m.game.words, m.guessInput.Value()) {
 				m.guessInput.SetValue("")
 				m.inputStyle = invalidInputStyle
 				return m, nil
@@ -187,13 +191,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.inputStyle = validInputStyle
 
-			if len(m.guesses) < m.maxTries {
-				m.guesses = append(m.guesses, checkGuess(m.word, m.guessInput.Value()))
+			if len(m.game.guesses) < m.game.maxTries {
+				m.game.guesses = append(m.game.guesses, checkGuess(m.game.word, m.guessInput.Value()))
 				m.guessInput.SetValue("")
 			}
-			m.state = checkPlayerState(m.guesses, m.maxTries)
+			m.game.state = checkPlayerState(m.game.guesses, m.game.maxTries)
 			// Should only save once here
-			if m.state != Playing {
+			if m.game.state != Playing {
 				saveGameToFile(m)
 			}
 			return m, nil
@@ -207,21 +211,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	var s string
 
-	switch m.state {
+	switch m.game.state {
 	case Playing:
 		s += "Make a guess!\n\n"
 
 	case Win:
 		s += "You win!\n"
-		s += fmt.Sprintf("The word was: %s\n", m.word)
-		s += fmt.Sprintf("You made %d guesses\n\n", len(m.guesses))
+		s += fmt.Sprintf("The word was: %s\n", m.game.word)
+		s += fmt.Sprintf("You made %d guesses\n\n", len(m.game.guesses))
 
 	case Lose:
 		s += "You lose!\n"
-		s += fmt.Sprintf("The word was: %s\n\n", m.word)
+		s += fmt.Sprintf("The word was: %s\n\n", m.game.word)
 	}
 
-	for _, g := range m.guesses {
+	for _, g := range m.game.guesses {
 		var letters []string
 		for i, l := range g.guess {
 			if slices.Contains(g.correctLettersIndex, i) {
@@ -237,7 +241,7 @@ func (m Model) View() string {
 		s += "\n"
 	}
 
-	if m.state == Playing {
+	if m.game.state == Playing {
 		s += m.inputStyle.Render(m.guessInput.View())
 	}
 	s += "\nPress Ctrl+C to quit\n"
@@ -267,11 +271,13 @@ func main() {
 
 	model := Model{
 		// Choose first word for now
-		words:      words,
-		word:       words[num],
-		dateString: date.Format("2006-01-02"),
-		state:      Playing,
-		maxTries:   6,
+		game: game{
+			words:      words,
+			word:       words[num],
+			dateString: date.Format("2006-01-02"),
+			state:      Playing,
+			maxTries:   6,
+		},
 		guessInput: textInput,
 		inputStyle: validInputStyle,
 	}
