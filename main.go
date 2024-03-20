@@ -157,6 +157,9 @@ func checkTodayCompleted() bool {
 
 	var results []result
 	json.Unmarshal([]byte(file), &results)
+	if len(results) == 0 {
+		return false
+	}
 
 	if results[len(results)-1].Date == time.Now().Format("2006-01-02") {
 		return true
