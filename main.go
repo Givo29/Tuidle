@@ -42,12 +42,13 @@ const (
 )
 
 type game struct {
-	words      []string
-	word       string
-	dateString string
-	state      PlayerState
-	maxTries   int
-	guesses    []Guess
+	words          []string
+	word           string
+	dateString     string
+	state          PlayerState
+	maxTries       int
+	guesses        []Guess
+	previousResult result
 }
 
 type Model struct {
@@ -117,26 +118,12 @@ func saveGameToFile(m Model) {
 		Win:     m.game.state == Win,
 	}
 
-	if len(results) > 0 {
-		todayDate, err := time.Parse("2006-01-02", m.game.dateString)
-		if err != nil {
-			fmt.Println("Error parsing date")
-			return
-		}
-		lastDate, _ := time.Parse("2006-01-02", results[len(results)-1].Date)
-		if err != nil {
-			fmt.Println("Error parsing date")
-			return
-		}
-		// check if last date is yesterday
-		if todayDate.Sub(lastDate).Hours() == 24 {
-			result.Streak = results[len(results)-1].Streak + 1
-		} else {
-			result.Streak = 1
-		}
-	} else {
-		result.Streak = 1
+	streak, err := checkStreak(result.Win, m.game.previousResult.Streak, m.game.previousResult.Date, m.game.dateString)
+	if err != nil {
+		fmt.Println("Error checking streak")
+		return
 	}
+	result.Streak = streak
 
 	results = append(results, result)
 	marshalledResults, err := json.Marshal(results)
@@ -149,23 +136,39 @@ func saveGameToFile(m Model) {
 	}
 }
 
-func checkTodayCompleted() bool {
+func getPreviousResult() (result, error) {
 	file, err := os.ReadFile(fmt.Sprintf("%s/.termdle.json", os.Getenv("HOME")))
 	if err != nil {
-		return false
+		return result{}, err
 	}
-
 	var results []result
 	json.Unmarshal([]byte(file), &results)
 	if len(results) == 0 {
-		return false
+		return result{}, nil
 	}
 
-	if results[len(results)-1].Date == time.Now().Format("2006-01-02") {
-		return true
+	return results[len(results)-1], nil
+}
+
+func checkStreak(win bool, lastStreak int, lastDateString, todayDateString string) (int, error) {
+	if !win {
+		return 0, nil
 	}
 
-	return false
+	todayDate, err := time.Parse("2006-01-02", todayDateString)
+	if err != nil {
+		return 1, err
+	}
+	lastDate, _ := time.Parse("2006-01-02", lastDateString)
+	if err != nil {
+		return 1, err
+	}
+
+	if todayDate.Sub(lastDate).Hours() == 24 {
+		return lastStreak + 1, nil
+	} else {
+		return 1, nil
+	}
 }
 
 func (m Model) Init() tea.Cmd { return nil }
@@ -246,6 +249,9 @@ func (m Model) View() string {
 
 	if m.game.state == Playing {
 		s += m.inputStyle.Render(m.guessInput.View())
+	} else {
+		streak, _ := checkStreak(m.game.state == Win, m.game.previousResult.Streak, m.game.previousResult.Date, m.game.dateString)
+		s += fmt.Sprintf("Your current streak is %d\n", streak)
 	}
 	s += "\nPress Ctrl+C to quit\n"
 
@@ -254,8 +260,14 @@ func (m Model) View() string {
 }
 
 func main() {
-	if checkTodayCompleted() {
+	previousResult, err := getPreviousResult()
+	if err != nil {
+		fmt.Println("Error reading previous result")
+		os.Exit(1)
+	}
+	if previousResult.Date == time.Now().Format("2006-01-02") {
 		fmt.Println("You've already played today, come back tomorrow for the next word!")
+		fmt.Println("Your current streak is", previousResult.Streak)
 		return
 	}
 	words := strings.Split(wordsString, "\n")
@@ -275,11 +287,12 @@ func main() {
 	model := Model{
 		// Choose first word for now
 		game: game{
-			words:      words,
-			word:       words[num],
-			dateString: date.Format("2006-01-02"),
-			state:      Playing,
-			maxTries:   6,
+			words:          words,
+			word:           words[num],
+			dateString:     date.Format("2006-01-02"),
+			state:          Playing,
+			maxTries:       6,
+			previousResult: previousResult,
 		},
 		guessInput: textInput,
 		inputStyle: validInputStyle,
