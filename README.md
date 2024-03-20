@@ -14,3 +14,4 @@ Play Wordle in your terminal! A TUI version of the popular game Wordle built usi
 - [x] Display streak after game end
 - [ ] Add stats page?
 - [ ] If game is already complete today, show stats instead of starting a new game
+- [ ] Show keyboard feedback like in the real game?
