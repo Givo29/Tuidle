@@ -12,7 +12,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
+
+var incorrectLetterStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(0, 1)
+var incorrectPositionStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#ff8100")).Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#ff8100")).Padding(0, 1)
+var correctStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#04B575")).Padding(0, 1)
+var inputStyle = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Width(25)
 
 type Guess struct {
 	correct               bool
@@ -86,6 +92,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
+      if m.state != Playing {
+        return m, nil
+      }
+
 			if len(m.guesses) < m.maxTries && len(m.guessInput.Value()) == 5 {
 				m.guesses = append(m.guesses, checkGuess(m.word, m.guessInput.Value()))
 				m.guessInput.SetValue("")
@@ -104,35 +114,38 @@ func (m Model) View() string {
 
 	switch m.state {
 	case Playing:
-		s += "Make a guess!\n"
-		s += fmt.Sprintf("Legend: (correct) [wrong position]\n\n")
-
-		for _, g := range m.guesses {
-			for i, l := range g.guess {
-				if slices.Contains(g.correctLettersIndex, i) {
-					s += fmt.Sprintf("(%s)", string(l))
-				} else if slices.Contains(g.incorrectLettersIndex, i) {
-					s += fmt.Sprintf("[%s]", string(l))
-				} else {
-					s += fmt.Sprintf("%s", string(l))
-				}
-			}
-			s += "\n"
-		}
-		s += fmt.Sprintf("\n%s", m.guessInput.View())
-		s += "\n\nPress Ctrl+C to quit\n"
+		s += "Make a guess!\n\n"
 
 	case Win:
 		s += "You win!\n"
 		s += fmt.Sprintf("The word was: %s\n", m.word)
-		s += fmt.Sprintf("You made %d guesses\n", len(m.guesses))
-		s += fmt.Sprintf("\nPress Ctrl+C to quit\n")
+		s += fmt.Sprintf("You made %d guesses\n\n", len(m.guesses))
 
 	case Lose:
 		s += "You lose!\n"
-		s += fmt.Sprintf("The word was: %s\n", m.word)
-		s += fmt.Sprintf("\nPress Ctrl+C to quit\n")
+		s += fmt.Sprintf("The word was: %s\n\n", m.word)
 	}
+
+	for _, g := range m.guesses {
+		var letters []string
+		for i, l := range g.guess {
+			if slices.Contains(g.correctLettersIndex, i) {
+				letters = append(letters, correctStyle.Render(fmt.Sprintf("%s", string(l))))
+			} else if slices.Contains(g.incorrectLettersIndex, i) {
+				letters = append(letters, incorrectPositionStyle.Render(fmt.Sprintf("%s", string(l))))
+			} else {
+				letters = append(letters, incorrectLetterStyle.Render(fmt.Sprintf("%s", string(l))))
+			}
+		}
+
+		s += lipgloss.JoinHorizontal(lipgloss.Left, letters...)
+		s += "\n"
+	}
+
+	if m.state == Playing {
+		s += inputStyle.Render(m.guessInput.View())
+	}
+	s += "\nPress Ctrl+C to quit\n"
 	return s
 }
 
