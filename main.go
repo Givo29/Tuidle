@@ -104,7 +104,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "enter":
-			if m.state != Playing {
+			if m.state != Playing || len(m.guessInput.Value()) != 5 {
 				return m, nil
 			}
 
@@ -116,7 +116,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.inputStyle = validInputStyle
 
-			if len(m.guesses) < m.maxTries && len(m.guessInput.Value()) == 5 {
+			if len(m.guesses) < m.maxTries {
 				m.guesses = append(m.guesses, checkGuess(m.word, m.guessInput.Value()))
 				m.guessInput.SetValue("")
 			}
