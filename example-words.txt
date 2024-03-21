@@ -1,0 +1,10 @@
+about
+flask
+stand
+world
+words
+minds
+pants
+tapes
+corny
+clean

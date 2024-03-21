@@ -8,6 +8,32 @@ Warning: The code is probably not great, this is my first Go project :)
 
 ![Demo](./examples/demo.gif)
 
+## Build From Source
+
+### Requirements
+
+Go 1.21 or later
+
+### Instructions
+
+1. Clone repository
+
+```
+git clone https://github.com/Givo29/Tuidle.git
+```
+
+2. Rename example-words.txt to words or supply own words file
+
+```
+mv example-words.txt words.txt
+```
+
+3. Build
+
+```
+go build
+```
+
 ## Todos
 
 - [x] Use JSON to record games and scores
