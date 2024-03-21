@@ -42,8 +42,8 @@ const (
 )
 
 type game struct {
-	Date    string      `json:"date"`
-	Word    string      `json:"word"`
+	Date    string `json:"date"`
+	Word    string
 	State   PlayerState `json:"state"`
 	Guesses []Guess     `json:"guesses"`
 	Streak  int         `json:"streak"`
@@ -98,7 +98,7 @@ func checkPlayerState(guesses []Guess, maxTries int) PlayerState {
 	return Playing
 }
 
-func saveGameToFile(m Model, saveWord bool) {
+func saveGameToFile(m Model) {
 	var games []game
 	var currentGame game
 
@@ -119,9 +119,6 @@ func saveGameToFile(m Model, saveWord bool) {
 		}
 	}
 
-	if saveWord {
-		currentGame.Word = m.game.Word
-	}
 	currentGame.State = m.game.State
 	currentGame.Guesses = m.game.Guesses
 
@@ -215,13 +212,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.game.Guesses) < m.maxTries {
 				m.game.Guesses = append(m.game.Guesses, checkGuess(m.game.Word, m.guessInput.Value()))
 				m.guessInput.SetValue("")
-				saveGameToFile(m, false)
 			}
 			m.game.State = checkPlayerState(m.game.Guesses, m.maxTries)
-			// if game has ended, save it to file with today's word.
-			if m.game.State != Playing {
-				saveGameToFile(m, true)
-			}
+			saveGameToFile(m)
 			return m, nil
 		}
 	}
