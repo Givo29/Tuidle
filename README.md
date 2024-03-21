@@ -37,7 +37,7 @@ go build
 ## Todos
 
 - [x] Use JSON to record games and scores
-- [ ] Save guess on every guess so user can't cheat
+- [x] Save guess on every guess so user can't cheat
 - [ ] Add an option to share your game
 - [ ] Add an option to export your JSON file
 - [x] Display streak after game end
